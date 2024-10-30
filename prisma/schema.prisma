@@ -1,0 +1,458 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum Role {
+  ADMIN
+  OWNER
+  MEMBER
+}
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id                     String       @id @default(uuid())
+  name                   String
+  email                  String       @unique
+  emailVerified          DateTime?
+  password               String?
+  telephone              String
+  category               String
+  idNumber               String
+  cep                    String
+  address                String
+  storeQuantity          String
+  orderQuantity          String
+  image                  String?
+  billingId              String?
+  billingProvider        String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @default(now())
+  invalid_login_attempts Int          @default(0)
+  lockedAt               DateTime?
+  teamMembers            TeamMember[]
+  accounts               Account[]
+  sessions               Session[]
+  invitations            Invitation[]
+  Order                  Order[]
+}
+
+model Team {
+  id                           String                         @id @default(uuid())
+  name                         String
+  slug                         String                         @unique
+  domain                       String?                        @unique
+  defaultRole                  Role                           @default(MEMBER)
+  billingId                    String?
+  billingProvider              String?
+  evo_instance_key             String?                        @unique
+  evo_instance_id              String?                        @unique
+  evo_instance_name            String?                        @unique
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @default(now())
+  isOpen                       Boolean                        @default(false)
+  members                      TeamMember[]
+  invitations                  Invitation[]
+  apiKeys                      ApiKey[]
+  Order                        Order[]
+  TeamContact                  TeamContact[]
+  Label                        Label[]
+  ContactLabel                 ContactLabel[]
+  InventoryProduct             InventoryProduct[]
+  InventoryCategory            InventoryCategory[]
+  InventorySubCategory         InventorySubCategory[]
+  Category_Product             Category_Product[]
+  Category_SubCategory         Category_SubCategory[]
+  Category_SubCategory_Product Category_SubCategory_Product[]
+  historico                    historico[]
+
+  @@index([billingId])
+}
+
+model TeamContact {
+  id           String         @id @default(uuid())
+  name         String
+  address      String?
+  cidade       String?
+  estado       String?
+  country      String?
+  DDD          String?
+  phone        String?
+  wpp          String?
+  obs          String?
+  emp_nome     String?
+  cnpj         String?
+  emp_address  String?
+  emp_cidade   String?
+  emp_estado   String?
+  emp_country  String?
+  emp_DDD      String?
+  emp_phone    String?
+  evoId        String?
+  teamId       String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  team         Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  ContactLabel ContactLabel[]
+}
+
+model Label {
+  id           String         @id @default(uuid())
+  name         String
+  emoji        String?
+  teamId       String
+  team         Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  ContactLabel ContactLabel[]
+}
+
+model ContactLabel {
+  id          String      @id @default(uuid())
+  labelId     String
+  contactId   String
+  teamId      String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  label       Label       @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  teamContact TeamContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+model InventoryCategory {
+  id                   String                 @id @default(uuid())
+  teamId               String
+  name                 String
+  team                 Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  Category_Product     Category_Product[]
+  Category_SubCategory Category_SubCategory[]
+
+  @@unique([teamId, name])
+}
+
+model Category_Product {
+  id                           String                         @id @default(uuid())
+  teamId                       String
+  productId                    String
+  categoryId                   String
+  team                         Team                           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  product                      InventoryProduct               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category                     InventoryCategory              @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  Category_SubCategory_Product Category_SubCategory_Product[]
+
+  @@unique([productId, categoryId])
+}
+
+model Category_SubCategory {
+  id                           String                         @id @default(uuid())
+  teamId                       String
+  categoryId                   String
+  subCategoryId                String
+  team                         Team                           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  category                     InventoryCategory              @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subcategory                  InventorySubCategory           @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  Category_SubCategory_Product Category_SubCategory_Product[]
+
+  @@unique([categoryId, subCategoryId])
+}
+
+model Category_SubCategory_Product {
+  id                      String               @id @default(uuid())
+  teamId                  String
+  category_product_id     String
+  category_subcategory_id String
+  team                    Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  category_product        Category_Product     @relation(fields: [category_product_id], references: [id], onDelete: Cascade)
+  category_subcategory    Category_SubCategory @relation(fields: [category_subcategory_id], references: [id], onDelete: Cascade)
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  @@unique([category_product_id, category_subcategory_id])
+}
+
+model InventorySubCategory {
+  id                   String                 @id @default(uuid())
+  teamId               String
+  name                 String
+  team                 Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  Category_SubCategory Category_SubCategory[]
+
+  @@unique([teamId, name])
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String
+  userId    String
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+enum OrderStatus {
+  BACKLOG
+  ANDAMENTO
+  ENTREGA
+  CONCLUIDO
+  CANCELADO
+}
+
+model Order {
+  id                  String      @id @default(uuid())
+  status              OrderStatus @default(BACKLOG)
+  entregador          String
+  nome                String
+  rua                 String
+  horario             DateTime
+  numero              String
+  complemento         String
+  cep                 String
+  cidade              String
+  estado              String
+  valor               Int
+  tel                 String
+  metodo_pag          String
+  instrucoes          String
+  createdBy           String
+  teamId              String
+  userId              String
+  motivo_cancelamento String      @default("undefined")
+  historico           historico[]
+  team                Team        @relation(fields: [teamId], references: [id])
+  user                User        @relation(fields: [userId], references: [id])
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  orderItems          OrderItem[]
+}
+
+model InventoryProduct {
+  id               String             @id @default(uuid())
+  teamId           String
+  name             String
+  imageUrl         String?
+  code             String?            
+  description      String?
+  purchasePrice    Float 
+  salePrice        Float     
+  stockQuant       Int
+  unitOfMeasure    String?
+  supplier         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  team             Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  Category_Product Category_Product[]
+  orderItems       OrderItem[]
+  
+}
+
+model OrderItem { 
+  id          String     @id @default(uuid())
+  orderId     String     @default(uuid())
+  productId   String     @default(uuid())
+  quantidade  Int
+  order       Order   @relation(fields: [orderId], references: [id])
+  inventoryProduct    InventoryProduct   @relation(fields: [productId], references: [id])
+}
+
+
+model Invitation {
+  id             String   @id @default(uuid())
+  teamId         String
+  email          String?
+  role           Role     @default(MEMBER)
+  token          String   @unique
+  expires        DateTime
+  invitedBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+  sentViaEmail   Boolean  @default(true)
+  allowedDomains String[] @default([])
+  user           User     @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, email])
+  @@index([email])
+}
+
+model PasswordReset {
+  id        Int      @id @default(autoincrement())
+  email     String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+}
+model ApiKey {
+  id         String    @id @default(uuid())
+  name       String
+  teamId     String
+  hashedKey  String    @unique
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now())
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+}
+
+model Subscription {
+  id         String    @id
+  customerId String
+  priceId    String
+  active     Boolean   @default(false)
+  startDate  DateTime
+  endDate    DateTime
+  cancelAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now())
+
+  @@index([customerId])
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  description String
+  features    String[]
+  image       String
+  name        String
+  created     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+  Price       Price[]
+}
+model Price {
+  id            String   @id @default(uuid())
+  billingScheme String
+  currency      String
+  serviceId     String
+  amount        Int?
+  metadata      Json
+  type          String
+  created       DateTime
+  service       Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model historico {
+  id               Int      @id @default(autoincrement())
+  nome             String
+  formadepagamento String
+  valor            Float
+  data             String
+  horario          String
+  nomeentregador   String
+  orderId          String
+  teamId           String
+  status           String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+  Order            Order    @relation(fields: [orderId], references: [id])
+  Team             Team     @relation(fields: [teamId], references: [id])
+}
+
+model jackson_store {
+  key           String          @id(map: "_jackson_store_key") @db.VarChar(1500)
+  value         String
+  iv            String?         @db.VarChar(64)
+  tag           String?         @db.VarChar(64)
+  createdAt     DateTime        @default(now()) @db.Timestamp(6)
+  modifiedAt    DateTime?       @db.Timestamp(6)
+  namespace     String?         @db.VarChar(256)
+  jackson_index jackson_index[]
+
+  @@index([namespace], map: "_jackson_store_namespace")
+  @@ignore
+}
+
+model jackson_index {
+  id       Int           @id(map: "_jackson_index_id") @default(autoincrement())
+  key      String        @db.VarChar(1500)
+  storeKey String        @db.VarChar(1500)
+  store    jackson_store @relation(fields: [storeKey], references: [key], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([key], map: "_jackson_index_key")
+  @@index([key, storeKey], map: "_jackson_index_key_store")
+  @@ignore
+}
+
+model jackson_ttl {
+  key       String @id(map: "jackson_ttl_key") @db.VarChar(1500)
+  expiresAt BigInt
+
+  @@index([expiresAt], map: "_jackson_ttl_expires_at")
+  @@ignore
+}
+
+model DeliveryDriver {
+  id                  Int      @id @default(autoincrement())
+  fullName            String
+  email               String   @unique
+  phone               String
+  address             String
+  city                String
+  state               String
+  vehicleModel        String
+  licensePlate        String   @unique
+  vehicleType         String
+  startTime           String
+  endTime             String
+  availableDays       String
+  photoUrl            String
+  idUrl               String
+  proofOfResidenceUrl String
+  vehicleDocumentUrl  String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("deliverydriver")
+}
