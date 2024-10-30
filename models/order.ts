@@ -75,7 +75,7 @@ export async function createOrderByApiKey(order: IOrder, apiKey: string) {
   });
 }
 
-// Função para criar um pedido usando o Team ID
+// Função para criar um pediddfdfo usando o Team ID
 export async function createOrder(order: IOrder, teamId: string) {
   const teamName = await getTeamNameById(teamId);
 
