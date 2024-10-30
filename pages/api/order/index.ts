@@ -128,7 +128,7 @@ async function handlePOST(
 
     const { teamId } = apiKeyData;
 
-    // Obter userId usando teamId (ajuste o modelo/relacionamento conforme necessário)
+    // ObteuserId usando teamId (ajuste o modelo/relacionamento conforme necessário)
     const teamMember = await prisma.teamMember.findFirst({
       where: { teamId },
       select: { userId: true }, // Seleciona apenas o userId
